@@ -1,6 +1,6 @@
 var express = require('express');
 var bodyParser = require('body-parser');
-var pg = require('pg');
+var pool = require('pg');
 
 var app = express();
 
@@ -10,7 +10,7 @@ app.use(express.static('public'));
 app.use(bodyParser.json());
 
 app.post('/update', function(req, res) {
-    pg.connect(process.env.DATABASE_URL, function (err, conn, done) {
+    pool.connect(process.env.DATABASE_URL, function (err, conn, done) {
         // watch for any connect issues
         if (err) console.log(err);
         conn.query(
@@ -19,7 +19,7 @@ app.post('/update', function(req, res) {
             function(err, result) {
                 if (err != null || result.rowCount == 0) {
                   conn.query('INSERT INTO salesforce.Contact (Phone, MobilePhone, FirstName, LastName, Email,Username__c,Password__c) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-                  [req.body.phone.trim(), req.body.phone.trim(), req.body.firstName.trim(), req.body.lastName.trim(), req.body.email.trim(),req.body.Username__c.trim(),req.body.Password__c.trim()],
+                  [req.body.phone.trim(), req.body.phone.trim(), req.body.firstName.trim(), req.body.lastName.trim(), req.body.email.trim()],
                   function(err, result) {
                     done();
                     if (err) {
@@ -43,4 +43,14 @@ app.post('/update', function(req, res) {
 
 app.listen(app.get('port'), function () {
     console.log('Express server listening on port ' + app.get('port'));
+    if (process.env.NODE_ENV === 'production') {
+        // Exprees will serve up production assets
+        app.use(express.static('Heroku\StaticAppHeroku\Static-App-Heroku/'));
+      
+        // Express serve up index.html file if it doesn't recognize route
+        const path = require('path');
+        app.get('/', function(req, res) {
+          res.sendFile(path.resolve(__dirname, 'index.html'));
+        });
+      }
 });
